@@ -1,0 +1,11 @@
+[project]
+name = "qrcode-helper-adb"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.13"
+dependencies = [
+    "flask>=3.1.2",
+    "setuptools>=80.9.0",
+    "uiautodev>=0.11.1",
+    "uiautomator2>=3.4.2",
+]
