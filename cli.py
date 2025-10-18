@@ -13,34 +13,23 @@ class AutomationCLI(cmd.Cmd):
 
     intro = """
 ╔══════════════════════════════════════════════════════════════╗
-║          二维码助手 - 交互式测试工具                          ║
+║          二维码助手 - 命令行模式                              ║
 ╚══════════════════════════════════════════════════════════════╝
 
-📋 主要命令:
+💡 可用命令:
+  menu                           进入交互式菜单
   list                           列出所有可用的工作流
-  run <app> <workflow> [参数]    执行指定工作流
   steps                          列出所有可用的步骤
-  step <app> <step> [参数]       执行单个步骤（用于调试）
+  run <app> <workflow> [参数]    直接执行工作流
+  step <app> <step> [参数]       直接执行步骤
 
-💡 使用示例:
-  list                           查看所有应用和工作流
-  run sunlogin open_scan         打开向日葵扫码功能
-  steps                          查看所有可用步骤
-  step sunlogin open_app         执行"启动应用"步骤
-  step sunlogin goto_my_tab      执行"切换到我的"步骤
-
-🔧 底层调试命令（用于单步测试）:
+🔧 调试命令:
   launch <包名>                  启动应用
   click_text <文本>              点击文本
-  click_xy <x> <y>               点击坐标
   screenshot <文件名>            截图
   info                          查看设备信息
   help                          查看所有命令
-
-💻 其他命令:
   quit/exit                      退出程序
-
-开始前请确保设备已连接！
 """
     prompt = "(qrcode-helper) "
 
@@ -616,6 +605,310 @@ class AutomationCLI(cmd.Cmd):
         except Exception as e:
             print(f"✗ 检查失败: {e}\n")
 
+    # ==================== 交互式菜单 ====================
+
+    def do_menu(self, arg):
+        """进入交互式菜单模式"""
+        print("\n" + "=" * 60)
+        print("🌟 欢迎使用交互式菜单模式")
+        print("=" * 60)
+        print("💡 提示: 随时输入 0 可返回上一级，按 Ctrl+C 退出菜单")
+        print()
+
+        while True:
+            # 1. 选择应用
+            app_name = self._menu_select_app()
+            if app_name is None:
+                print("\n👋 已退出菜单模式")
+                print("💡 输入 'menu' 可重新进入菜单，输入 'quit' 退出程序\n")
+                break  # 用户选择退出
+
+            # 2. 选择操作类型（工作流 or 步骤）
+            action_type = self._menu_select_action_type(app_name)
+            if action_type is None:
+                continue  # 返回应用选择
+
+            # 3. 根据类型选择具体的工作流或步骤
+            if action_type == "workflow":
+                self._menu_execute_workflow(app_name)
+            elif action_type == "step":
+                self._menu_execute_step(app_name)
+
+    def _menu_select_app(self):
+        """菜单：选择应用"""
+        print("\n" + "=" * 60)
+        print("📱 选择应用")
+        print("=" * 60)
+
+        # 合并所有应用（工作流 + 步骤）
+        all_apps = set()
+        all_apps.update(self.available_apps.keys())
+        all_apps.update(self.available_steps.keys())
+        app_list = sorted(list(all_apps))
+
+        if not app_list:
+            print("❌ 没有找到任何应用")
+            input("\n按回车键继续...")
+            return None
+
+        # 显示应用列表
+        for i, app_name in enumerate(app_list, 1):
+            workflow_count = len(self.available_apps.get(app_name, {}))
+            step_count = len(self.available_steps.get(app_name, {}))
+            info = []
+            if workflow_count > 0:
+                info.append(f"{workflow_count} 个工作流")
+            if step_count > 0:
+                info.append(f"{step_count} 个步骤")
+            info_str = ", ".join(info) if info else "无功能"
+            print(f"  {i}. {app_name} ({info_str})")
+
+        print(f"  0. 返回/退出")
+        print()
+
+        # 获取用户输入
+        try:
+            choice = input("请选择应用 (输入序号): ").strip()
+            if not choice or choice == "0":
+                return None
+
+            index = int(choice) - 1
+            if 0 <= index < len(app_list):
+                return app_list[index]
+            else:
+                print("❌ 无效的序号")
+                input("\n按回车键继续...")
+                return self._menu_select_app()
+        except ValueError:
+            print("❌ 请输入数字")
+            input("\n按回车键继续...")
+            return self._menu_select_app()
+        except KeyboardInterrupt:
+            return None
+
+    def _menu_select_action_type(self, app_name):
+        """菜单：选择操作类型（工作流或步骤）"""
+        print("\n" + "=" * 60)
+        print(f"📱 {app_name} - 选择操作类型")
+        print("=" * 60)
+
+        options = []
+        if app_name in self.available_apps:
+            options.append("workflow")
+            print(f"  1. 执行工作流 ({len(self.available_apps[app_name])} 个)")
+        if app_name in self.available_steps:
+            options.append("step")
+            step_num = len(options)
+            print(f"  {step_num}. 执行步骤 ({len(self.available_steps[app_name])} 个)")
+
+        print(f"  0. 返回")
+        print()
+
+        if not options:
+            print("❌ 该应用没有可用的操作")
+            input("\n按回车键继续...")
+            return None
+
+        try:
+            choice = input("请选择操作类型 (输入序号): ").strip()
+            if not choice or choice == "0":
+                return None
+
+            index = int(choice) - 1
+            if 0 <= index < len(options):
+                return options[index]
+            else:
+                print("❌ 无效的序号")
+                input("\n按回车键继续...")
+                return self._menu_select_action_type(app_name)
+        except ValueError:
+            print("❌ 请输入数字")
+            input("\n按回车键继续...")
+            return self._menu_select_action_type(app_name)
+        except KeyboardInterrupt:
+            return None
+
+    def _menu_execute_workflow(self, app_name):
+        """菜单：执行工作流"""
+        workflows = self.available_apps.get(app_name, {})
+        if not workflows:
+            print("❌ 该应用没有工作流")
+            input("\n按回车键继续...")
+            return
+
+        while True:
+            print("\n" + "=" * 60)
+            print(f"🔧 {app_name} - 选择工作流")
+            print("=" * 60)
+
+            workflow_list = list(workflows.items())
+            for i, (workflow_name, workflow_func) in enumerate(workflow_list, 1):
+                doc = workflow_func.__doc__
+                if doc:
+                    desc = doc.strip().split("\n")[0]
+                else:
+                    desc = "无描述"
+                print(f"  {i}. {workflow_name}")
+                print(f"     {desc}")
+
+            print(f"  0. 返回")
+            print()
+
+            try:
+                choice = input("请选择工作流 (输入序号): ").strip()
+                if not choice or choice == "0":
+                    return
+
+                index = int(choice) - 1
+                if 0 <= index < len(workflow_list):
+                    workflow_name, workflow_func = workflow_list[index]
+
+                    # 询问是否需要参数
+                    print(f"\n💡 提示: 如需传递参数，格式为 key=value，多个参数用空格分隔")
+                    params_input = input("请输入参数 (直接回车跳过): ").strip()
+
+                    # 解析参数
+                    params = {}
+                    if params_input:
+                        for param in params_input.split():
+                            if "=" in param:
+                                key, value = param.split("=", 1)
+                                try:
+                                    value = int(value)
+                                except ValueError:
+                                    try:
+                                        value = float(value)
+                                    except ValueError:
+                                        pass
+                                params[key] = value
+
+                    # 执行工作流
+                    print(f"\n▶️  执行工作流: {app_name}.{workflow_name}")
+                    if params:
+                        print(f"   参数: {params}")
+                    print()
+
+                    try:
+                        result = workflow_func(self.actions, **params)
+
+                        print("\n" + "=" * 60)
+                        if result.get("success"):
+                            print(f"✅ 成功: {result.get('message', '工作流执行完成')}")
+                        else:
+                            print(f"❌ 失败: {result.get('error', '未知错误')}")
+                        print("=" * 60)
+                    except Exception as e:
+                        print(f"\n❌ 执行失败: {e}")
+                        import traceback
+                        traceback.print_exc()
+
+                    input("\n按回车键继续...")
+                else:
+                    print("❌ 无效的序号")
+                    input("\n按回车键继续...")
+            except ValueError:
+                print("❌ 请输入数字")
+                input("\n按回车键继续...")
+            except KeyboardInterrupt:
+                return
+
+    def _menu_execute_step(self, app_name):
+        """菜单：执行步骤"""
+        steps = self.available_steps.get(app_name, {})
+        if not steps:
+            print("❌ 该应用没有步骤")
+            input("\n按回车键继续...")
+            return
+
+        while True:
+            print("\n" + "=" * 60)
+            print(f"🔧 {app_name} - 选择步骤")
+            print("=" * 60)
+
+            step_list = list(steps.items())
+            for i, (step_name, step_func) in enumerate(step_list, 1):
+                doc = step_func.__doc__
+                if doc:
+                    desc = doc.strip().split("\n")[0]
+                else:
+                    desc = "无描述"
+                print(f"  {i}. {step_name}")
+                print(f"     {desc}")
+
+            print(f"  0. 返回")
+            print()
+
+            try:
+                choice = input("请选择步骤 (输入序号): ").strip()
+                if not choice or choice == "0":
+                    return
+
+                index = int(choice) - 1
+                if 0 <= index < len(step_list):
+                    step_name, step_func = step_list[index]
+
+                    # 询问是否需要参数
+                    print(f"\n💡 提示: 如需传递参数，格式为 key=value，多个参数用空格分隔")
+                    params_input = input("请输入参数 (直接回车跳过): ").strip()
+
+                    # 解析参数
+                    params = {}
+                    if params_input:
+                        for param in params_input.split():
+                            if "=" in param:
+                                key, value = param.split("=", 1)
+                                try:
+                                    value = int(value)
+                                except ValueError:
+                                    try:
+                                        value = float(value)
+                                    except ValueError:
+                                        pass
+                                params[key] = value
+
+                    # 执行步骤
+                    print(f"\n▶️  执行步骤: {app_name}.{step_name}")
+                    if params:
+                        print(f"   参数: {params}")
+                    print()
+
+                    try:
+                        result = step_func(self.actions, **params)
+
+                        print("\n" + "=" * 60)
+                        if isinstance(result, bool):
+                            if result:
+                                print(f"✅ 返回值: True")
+                            else:
+                                print(f"❌ 返回值: False")
+                        elif result is None:
+                            print(f"ℹ️  返回值: None")
+                        else:
+                            print(f"📊 返回值: {result}")
+                        print("=" * 60)
+                    except TypeError as e:
+                        if "missing" in str(e) and "required positional argument" in str(e):
+                            print(f"\n❌ 参数错误: {e}")
+                            print(f"💡 提示: 这个步骤可能需要额外参数")
+                        else:
+                            print(f"\n❌ 执行失败: {e}")
+                            import traceback
+                            traceback.print_exc()
+                    except Exception as e:
+                        print(f"\n❌ 执行失败: {e}")
+                        import traceback
+                        traceback.print_exc()
+
+                    input("\n按回车键继续...")
+                else:
+                    print("❌ 无效的序号")
+                    input("\n按回车键继续...")
+            except ValueError:
+                print("❌ 请输入数字")
+                input("\n按回车键继续...")
+            except KeyboardInterrupt:
+                return
+
     # ==================== 快捷命令 ====================
 
     def do_wechat(self, arg):
@@ -646,7 +939,14 @@ class AutomationCLI(cmd.Cmd):
 def main():
     """主函数"""
     try:
-        AutomationCLI().cmdloop()
+        cli = AutomationCLI()
+        # 直接进入菜单模式，而不是命令行模式
+        cli.preloop()
+        cli.do_menu("")
+
+        # 退出菜单后，进入命令行模式（可选）
+        print("\n💡 现在可以使用命令行模式，输入 'help' 查看帮助，'quit' 退出程序")
+        cli.cmdloop()
     except KeyboardInterrupt:
         print("\n\n再见！\n")
         sys.exit(0)

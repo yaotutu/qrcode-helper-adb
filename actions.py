@@ -58,7 +58,12 @@ class Actions:
                 return True
             return False
         except Exception as e:
-            print(f"点击文本失败: {e}")
+            error_msg = str(e)
+            if "INJECT_EVENTS" in error_msg or "SecurityException" in error_msg:
+                print(f"❌ 点击失败: 权限不足")
+                print(f"💡 请执行: uv run python -m uiautomator2 init")
+            else:
+                print(f"点击文本失败: {e}")
             return False
 
     def click_by_id(self, resource_id: str, timeout: float = 10.0) -> bool:
@@ -81,7 +86,12 @@ class Actions:
                 return True
             return False
         except Exception as e:
-            print(f"点击 ID 失败: {e}")
+            error_msg = str(e)
+            if "INJECT_EVENTS" in error_msg or "SecurityException" in error_msg:
+                print(f"❌ 点击失败: 权限不足")
+                print(f"💡 请执行: uv run python -m uiautomator2 init")
+            else:
+                print(f"点击 ID 失败: {e}")
             return False
 
     def click_coordinate(self, x: int, y: int):
@@ -92,9 +102,18 @@ class Actions:
             x: X 坐标
             y: Y 坐标
         """
-        print(f"点击坐标: ({x}, {y})")
-        self.device.click(x, y)
-        time.sleep(0.5)
+        try:
+            print(f"点击坐标: ({x}, {y})")
+            self.device.click(x, y)
+            time.sleep(0.5)
+        except Exception as e:
+            error_msg = str(e)
+            if "INJECT_EVENTS" in error_msg or "SecurityException" in error_msg:
+                print(f"❌ 点击失败: 权限不足")
+                print(f"💡 请执行: uv run python -m uiautomator2 init")
+                raise
+            else:
+                raise
 
     def swipe(self, direction: str = "up", scale: float = 0.8):
         """

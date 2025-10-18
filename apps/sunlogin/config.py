@@ -12,6 +12,9 @@ TEXTS = {
 
 # 资源 ID
 RESOURCE_IDS = {
+    # 底部导航栏
+    "my_tab_button": "com.oray.sunlogin:id/btn_host_list_set",  # 底部"我的"标签按钮
+    "device_tab_button": None,  # 底部"设备"标签按钮 - 待获取
     # 扫码相关
     "scan_button": None,  # 扫码按钮的 ID（在"我的"页面左上角）- 需要从 uiautodev 获取
     "scan_view": "com.oray.sunlogin:id/scan_view",  # 扫码页面的视图

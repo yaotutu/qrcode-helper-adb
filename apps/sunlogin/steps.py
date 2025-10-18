@@ -108,21 +108,53 @@ def open_app(actions: Actions) -> bool:
 
 
 def goto_my_tab(actions: Actions) -> bool:
-    """步骤：点击底部"我的"标签"""
+    """步骤：点击底部"我的"标签
+
+    优先使用 resource-id，如果失败则使用文本定位
+    """
     print("→ 点击底部'我的'标签")
+
+    # 方法1：优先使用 resource-id（更可靠，更快）
+    if RESOURCE_IDS["my_tab_button"]:
+        print(f"  使用 resource-id: {RESOURCE_IDS['my_tab_button']}")
+        if actions.click_by_id(RESOURCE_IDS["my_tab_button"], timeout=5):
+            actions.sleep(1)
+            return True
+        else:
+            print("  ✗ 通过 resource-id 点击失败，尝试文本点击")
+
+    # 方法2：备用方案 - 使用文本点击
+    print(f"  使用文本点击: {TEXTS['my_tab']}")
     if not actions.click_by_text(TEXTS["my_tab"], timeout=5):
         print(f"  ✗ 未找到'{TEXTS['my_tab']}'标签")
         return False
+
     actions.sleep(1)
     return True
 
 
 def goto_device_tab(actions: Actions) -> bool:
-    """步骤：点击底部"设备"标签"""
+    """步骤：点击底部"设备"标签
+
+    优先使用 resource-id，如果失败则使用文本定位
+    """
     print("→ 点击底部'设备'标签")
+
+    # 方法1：优先使用 resource-id（更可靠，更快）
+    if RESOURCE_IDS["device_tab_button"]:
+        print(f"  使用 resource-id: {RESOURCE_IDS['device_tab_button']}")
+        if actions.click_by_id(RESOURCE_IDS["device_tab_button"], timeout=5):
+            actions.sleep(1)
+            return True
+        else:
+            print("  ✗ 通过 resource-id 点击失败，尝试文本点击")
+
+    # 方法2：备用方案 - 使用文本点击
+    print(f"  使用文本点击: {TEXTS['device_tab']}")
     if not actions.click_by_text(TEXTS["device_tab"], timeout=5):
         print(f"  ✗ 未找到'{TEXTS['device_tab']}'标签")
         return False
+
     actions.sleep(1)
     return True
 
