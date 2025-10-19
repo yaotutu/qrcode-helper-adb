@@ -564,6 +564,7 @@ dependencies = [
     { name = "setuptools" },
     { name = "uiautodev" },
     { name = "uiautomator2" },
+    { name = "websockets" },
 ]
 
 [package.metadata]
@@ -572,6 +573,7 @@ requires-dist = [
     { name = "setuptools", specifier = ">=80.9.0" },
     { name = "uiautodev", specifier = ">=0.11.1" },
     { name = "uiautomator2", specifier = ">=3.4.2" },
+    { name = "websockets", specifier = ">=15.0.1" },
 ]
 
 [[package]]

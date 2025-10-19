@@ -85,7 +85,57 @@ python -m uiautomator2 init
 
 ## 使用方法
 
-### 方式一：交互式命令行工具（推荐用于测试和调试）
+### 方式一：WebSocket 客户端模式（推荐用于生产环境）
+
+**适用场景：** 客户端在内网，服务端在公网，需要服务端远程调用客户端执行任务
+
+```bash
+# 连接到服务端（默认 ws://localhost:8000/ws）
+uv run ws_client.py
+
+# 指定服务端地址
+uv run ws_client.py --server ws://your-server.com:8000/ws
+
+# 指定客户端 ID
+uv run ws_client.py --server ws://your-server.com:8000/ws --client-id my-device-001
+```
+
+**工作原理：**
+1. 客户端主动连接服务端 WebSocket
+2. 服务端下发任务消息
+3. 客户端执行工作流并返回结果
+4. 自动重连和心跳保活
+
+**WebSocket 消息格式：**
+
+服务端下发任务：
+```json
+{
+  "type": "task",
+  "task_id": "uuid-1234",
+  "app": "sunlogin",
+  "workflow": "execute",
+  "params": {
+    "image_index": 0
+  },
+  "timeout": 30
+}
+```
+
+客户端返回结果：
+```json
+{
+  "type": "result",
+  "task_id": "uuid-1234",
+  "success": true,
+  "message": "已完成从相册扫码流程",
+  "duration": 8.5
+}
+```
+
+---
+
+### 方式二：交互式命令行工具（推荐用于测试和调试）
 
 ```bash
 uv run cli.py
@@ -117,13 +167,15 @@ uv run cli.py
 - `wechat` - 快速启动微信
 - `alipay` - 快速启动支付宝
 
-### 方式二：HTTP API 服务
+### 方式三：HTTP API 服务（仅适用于客户端有公网IP的场景）
+
+**注意：** 如果客户端在内网，服务端无法直接访问，请使用 **方式一（WebSocket 模式）**
 
 ```bash
 uv run main.py
 ```
 
-服务将在 `http://0.0.0.0:5000` 启动。
+服务将在 `http://0.0.0.0:8000` 启动。
 
 ### API 接口
 
@@ -392,10 +444,11 @@ CLI 和服务运行时都会输出详细日志，帮助调试工作流执行过�
 
 ## 技术栈
 
-- **Python 3.8+**
+- **Python 3.13+**
 - **uv** - 现代化的 Python 包管理工具
 - **UIAutomator2** - Android 自动化框架
-- **Flask** - 轻量级 Web 框架
+- **websockets** - WebSocket 客户端库
+- **Flask** - 轻量级 Web 框架（可选）
 
 ## 许可证
 
